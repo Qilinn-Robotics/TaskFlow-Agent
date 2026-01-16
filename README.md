@@ -1,7 +1,7 @@
-## TaskFlow-AI User Guide
+## TaskFlow-Agent User Guide
 
 ### Overview
-TaskFlow-AI is an agent-friendly task manager that supports natural language parsing, task storage, and subtask breakdown. It provides stable Python APIs and CLI commands so agents can understand, reason, and schedule tasks reliably.
+TaskFlow-Agent is an agent-friendly task manager that supports natural language parsing, task storage, and subtask breakdown. It provides stable Python APIs and CLI commands so agents can understand, reason, and schedule tasks reliably.
 
 For the Chinese version, see [README_CN.md](README_CN.md).
 
