@@ -11,12 +11,13 @@ For the Chinese version, see [README_CN.md](README_CN.md).
 3. Common commands:
    - `list` show all tasks
    - `today` show today’s subtask list
-   - `todayadd <task_id> <index>` add a subtask to today
-   - `todayrm <task_id> <index>` remove a subtask from today
+   - `todayadd <task_id|name> <index>` add a subtask to today
+   - `todayrm <task_id|name> <index>` remove a subtask from today
    - `todaypick <keyword>` pick today’s subtasks by keyword
-   - `delete <task_id>` delete a task
-   - `subadd <task_id> <subtask>` add a subtask
-   - `subrm <task_id> <index>` remove a subtask
+   - `todaydone <task_id|name> <index>` complete a today's subtask
+   - `delete <task_id|name>` delete a task
+   - `subadd <task_id|name> <subtask>` add a subtask
+   - `subrm <task_id|name> <index>` remove a subtask
    - `quit` exit
 
 ### Task Storage
@@ -38,6 +39,7 @@ Legacy single-file tasks/tasks.json will be migrated on first run.
 - `mark_today_subtask(task_id, index)` mark a subtask for today
 - `unmark_today_subtask(task_id, index)` unmark a subtask for today
 - `pick_today_by_keyword(keyword)` pick today’s subtasks by keyword
+- `complete_today_subtask(task_id, index)` complete a today's subtask (removes it)
 
 ### CLI vs Agent Usage
 - For agent/tool integration, use the `TaskManager` Python API for structured, reliable automation.

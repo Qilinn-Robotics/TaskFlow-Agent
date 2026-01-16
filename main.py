@@ -36,7 +36,6 @@ class Task:
     status: str  # pending | executed
     result: Optional[str]
     subtasks: List[str] = field(default_factory=list)
-    is_today: bool = False
 
 
 PRIORITY_KEYWORDS = {
@@ -359,18 +358,27 @@ class TaskManager:
     def get_task(self, task_id: str) -> Optional[Task]:
         return next((t for t in self._tasks if t.id == task_id), None)
 
+    def find_task(self, identifier: str) -> Task:
+        if not identifier:
+            raise ValidationError("Task identifier cannot be empty.")
+        by_id = self.get_task(identifier)
+        if by_id:
+            return by_id
+        matches = [t for t in self._tasks if t.name == identifier]
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1:
+            raise ValidationError("Multiple tasks match the same name; please use the task ID.")
+        raise ValidationError("Task not found.")
+
     def update_status(self, task_id: str, status: str) -> Task:
-        task = self.get_task(task_id)
-        if not task:
-            raise ValidationError("Task not found.")
+        task = self.find_task(task_id)
         task.status = status
         save_tasks(self._tasks)
         return task
 
     def mark_today_subtask(self, task_id: str, index: int) -> Dict[str, Any]:
-        task = self.get_task(task_id)
-        if not task:
-            raise ValidationError("Task not found.")
+        task = self.find_task(task_id)
         if index < 0 or index >= len(task.subtasks):
             raise ValidationError("Invalid subtask index.")
         subtask_text = task.subtasks[index]
@@ -389,6 +397,30 @@ class TaskManager:
             i for i in self._today_items
             if not (i.get("task_id") == task_id and i.get("subtask_index") == index)
         ]
+        _save_today_items(self._today_items)
+
+    def _sync_today_items_after_subtask_change(self, task: Task, removed_index: int) -> None:
+        updated: List[Dict[str, Any]] = []
+        for item in self._today_items:
+            if item.get("task_id") != task.id:
+                updated.append(item)
+                continue
+            idx = item.get("subtask_index", -1)
+            if idx == removed_index:
+                continue
+            if idx > removed_index:
+                new_index = idx - 1
+            else:
+                new_index = idx
+            if 0 <= new_index < len(task.subtasks):
+                updated.append(
+                    {
+                        "task_id": task.id,
+                        "subtask_index": new_index,
+                        "subtask": task.subtasks[new_index],
+                    }
+                )
+        self._today_items = updated
         _save_today_items(self._today_items)
 
     def pick_today_by_keyword(self, keyword: str) -> List[Dict[str, Any]]:
@@ -414,34 +446,37 @@ class TaskManager:
     def add_subtask(self, task_id: str, subtask: str) -> Task:
         if not subtask or not subtask.strip():
             raise ValidationError("Subtask cannot be empty.")
-        task = self.get_task(task_id)
-        if not task:
-            raise ValidationError("Task not found.")
+        task = self.find_task(task_id)
         task.subtasks.append(subtask.strip())
         save_tasks(self._tasks)
         return task
 
     def remove_subtask(self, task_id: str, index: int) -> Task:
-        task = self.get_task(task_id)
-        if not task:
-            raise ValidationError("Task not found.")
+        task = self.find_task(task_id)
         if index < 0 or index >= len(task.subtasks):
             raise ValidationError("Invalid subtask index.")
         task.subtasks.pop(index)
         save_tasks(self._tasks)
+        self._sync_today_items_after_subtask_change(task, index)
         return task
 
+    def complete_today_subtask(self, task_id: str, index: int) -> str:
+        task = self.find_task(task_id)
+        if index < 0 or index >= len(task.subtasks):
+            raise ValidationError("Invalid subtask index.")
+        removed = task.subtasks[index]
+        self.remove_subtask(task_id, index)
+        return removed
+
     def delete_task(self, task_id: str) -> None:
-        task = self.get_task(task_id)
-        if not task:
-            raise ValidationError("Task not found.")
-        self._tasks = [t for t in self._tasks if t.id != task_id]
-        task_path = TASKS_DIR / f"{task_id}.json"
+        task = self.find_task(task_id)
+        self._tasks = [t for t in self._tasks if t.id != task.id]
+        task_path = TASKS_DIR / f"{task.id}.json"
         if task_path.exists():
             task_path.unlink()
         save_tasks(self._tasks)
         if self._today_items:
-            self._today_items = [i for i in self._today_items if i.get("task_id") != task_id]
+            self._today_items = [i for i in self._today_items if i.get("task_id") != task.id]
             _save_today_items(self._today_items)
 
     def search_tasks(self, keyword: str) -> List[Task]:
@@ -492,11 +527,12 @@ def print_help() -> None:
     print("Enter a natural-language task, e.g., 'Plan a marketing meeting next Monday, high priority'.")
     print(
         "Commands: list (show tasks); today (show today's subtasks); "
-        "todayadd <task_id> <index> (add subtask to today); "
-        "todayrm <task_id> <index> (remove subtask from today); "
+        "todayadd <task_id|name> <index> (add subtask to today); "
+        "todayrm <task_id|name> <index> (remove subtask from today); "
         "todaypick <keyword> (pick today's subtasks by keyword); "
-        "delete <task_id> (delete task); "
-        "subadd <task_id> <subtask> (add subtask); subrm <task_id> <index> (remove subtask); "
+        "todaydone <task_id|name> <index> (complete a today's subtask); "
+        "delete <task_id|name> (delete task); "
+        "subadd <task_id|name> <subtask> (add subtask); subrm <task_id|name> <index> (remove subtask); "
         "help; quit/exit."
     )
 
@@ -562,6 +598,21 @@ def main() -> None:
                 else:
                     print("Picked today's TODO:")
                     print(list_today_items(matches, manager))
+            except ValidationError as exc:
+                print(f"Error: {exc}")
+            continue
+        if user_input.lower().startswith("todaydone "):
+            parts = user_input.split(" ", 2)
+            if len(parts) < 3:
+                print("Error: usage todaydone <task_id> <index>")
+                continue
+            task_id = parts[1].strip()
+            try:
+                index = int(parts[2].strip()) - 1
+                removed = manager.complete_today_subtask(task_id, index)
+                print(f"Completed and removed subtask: {removed}")
+            except ValueError:
+                print("Error: index must be a number (starting at 1).")
             except ValidationError as exc:
                 print(f"Error: {exc}")
             continue

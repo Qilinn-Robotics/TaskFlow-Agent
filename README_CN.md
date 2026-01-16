@@ -4,17 +4,18 @@
 TaskFlow-AI 是一个智能体友好的任务管理器，支持自然语言解析、任务存储与子任务拆分，并提供稳定的 Python API 与 CLI 命令，方便 agent 进行理解、推理与调度。
 
 ### 快速启动（CLI）
-1. 在项目根目录运行：`python3 main_cn.py`
+1. 在项目根目录运行：`python3 main.py`
 2. 连续输入自然语言任务或命令。
 3. 常用命令：
 	- `list` 查看任务
 	- `today` 查看今天子任务
-	- `todayadd <task_id> <index>` 添加今日子任务
-	- `todayrm <task_id> <index>` 取消今日子任务
+	- `todayadd <task_id|name> <index>` 添加今日子任务
+	- `todayrm <task_id|name> <index>` 取消今日子任务
 	- `todaypick <关键词>` 按关键词摘取今日子任务
-	- `delete <task_id>` 删除任务
-	- `subadd <task_id> <子任务>` 添加子任务
-	- `subrm <task_id> <index>` 删除子任务
+	- `todaydone <task_id|name> <index>` 完成今日子任务
+	- `delete <task_id|name>` 删除任务
+	- `subadd <task_id|name> <子任务>` 添加子任务
+	- `subrm <task_id|name> <index>` 删除子任务
 	- `quit` 退出
 
 ### 任务存储
@@ -36,6 +37,7 @@ TaskFlow-AI 是一个智能体友好的任务管理器，支持自然语言解�
 - `mark_today_subtask(task_id, index)` 标记今日子任务
 - `unmark_today_subtask(task_id, index)` 取消今日子任务
 - `pick_today_by_keyword(keyword)` 按关键词摘取今日子任务
+- `complete_today_subtask(task_id, index)` 完成今日子任务（并删除该子任务）
 
 ### CLI 与 Agent 使用方式
 - CLI 使用方式适合终端交互。

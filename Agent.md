@@ -37,10 +37,13 @@ Available Commands:
 - `quit` or `exit` quit
 
 ### Task Filling Requirements
-You can enter **multiple tasks** in natural language. Examples:
-- Plan a marketing meeting next Monday, high priority
-- Design the Q1 marketing campaign plan, end of month
-- Follow up on supplier contract, low priority
+You can enter **multiple tasks** in natural language. To ensure the due date is correctly parsed, use the `YYYY-MM-DD` format.
+**Important:** Ensure task names are simple, easy to type, and **do not contain spaces** to allow for easy selection by name in commands.
+
+Examples:
+- MarketingMeeting, 2026-01-20, high priority
+- Q1Campaign, 2026-03-31
+- SupplierContract, 2026-02-15, low priority
 
 ### Verification Steps
 1. After entering multiple tasks, run `list` to confirm tasks are saved.
